@@ -4,7 +4,7 @@
 # by @catalyst256, catalyst256@gmail.com
 
 import requests, pygeoip, re, poplib, socket, sys # Needed for everything else other than VirusTotal
-import simplejson, urllib, urllib2 # Needed for the VirusTotal API submission
+import json, urllib, urllib2 # Needed for the VirusTotal API submission
 
 # Add some colouring for printing packets later
 YELLOW = '\033[93m' # Yellow is for information
@@ -24,6 +24,7 @@ submit_list = [] # List of URL's that we are going to submit to either cuckoo or
 sender_ip_lookup = [] # Initial list of email sender IP addresses, this is used for GeoIP lookup
 url_ip_lookup = [] # Initial list of URL IP addresses, again this is used for GeoIP lookup
 geo_ip_data = [] # Combination of sender and url ip geoIP lookup information
+vt_output = []
 
 # Welcome message
 print GREEN + 'Junk Email downloader by @catalyst256' + END
@@ -45,13 +46,12 @@ try:
 		print RED + '[!] Mailbox Empty, try again later' + END
 		sys.exit(1)
 	else:
-		print YELLOW + '[-] Number of messages waiting download: ' + str(numMessages) + END
+		print YELLOW + '[-] Number of messages waiting for download: ' + str(numMessages) + END
 		for i in range(numMessages):
 		    for msg in M.retr(i+1)[1]:
 		    	for s in re.finditer('sender IP is (\d*.\d*.\d*.\d*)', msg):
 		    		sender_ip_lookup.append(s.group(1))
-	    		for t in re.finditer('<a href="(\S*)"', msg):
-	    			print t.group(1)
+	    		for t in re.finditer('href="(\S*)"', msg):
 	    			url_list.append(t.group(1))
 except:
 	print RED + '[!] Error encountered.. Exiting..' + END
@@ -110,9 +110,10 @@ for req in url_list:
 	if 'http://' in req:
 		r = requests.get(req)
 		if r.status_code == 200:
-			submit_list.append(req)
+			if req not in submit_list:
+				submit_list.append(req)
 		else:
-			print RED + "[!] URL Not Active!! - " + req + END
+			print RED + "[!] URL Not Active!! - " + req + ' - ' + str(r.status_code) + END
 	else:
 		pass
 
@@ -121,13 +122,14 @@ for f in submit_list:
 	print YELLOW + '[-] URL to be submitted: ' + f + END
 
 # Submit the URL's to VirusTotal.com
-print YELLOW + '[-] Submitting the URLs to VirusTotal.com' + END
+print YELLOW + '[-] Checking the URLs with VirusTotal.com (will scan if not seen before)' + END
 for x in submit_list:
-	url = 'https://www.virustotal.com/vtapi/v2/url/scan'
-	parameters = {'url': x,'apikey': vtkey}
+	url = 'https://www.virustotal.com/vtapi/v2/url/report'
+	parameters = {'resource': x,'apikey': vtkey,'scan': 1}
 	data = urllib.urlencode(parameters)
 	req = urllib2.Request(url, data)
 	response = urllib2.urlopen(req)
-	json = response.read()
-	print json
-
+	json = json.load(response)
+	print GREEN + '[+] Scan on: ' + x + ' complete' + END
+	print YELLOW + '[+] Link to report is here: ' + json['permalink'] + END
+	print YELLOW + '[+] Scan Date: ' + json['scan_date'] + END
