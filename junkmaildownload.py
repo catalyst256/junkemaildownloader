@@ -50,8 +50,9 @@ try:
 		    for msg in M.retr(i+1)[1]:
 		    	for s in re.finditer('sender IP is (\d*.\d*.\d*.\d*)', msg):
 		    		sender_ip_lookup.append(s.group(1))
-		    	for t in re.finditer('<a href="(\S*)"', msg):
-		    		url_list.append(t.group(1))
+	    		for t in re.finditer('<a href="(\S*)"', msg):
+	    			print t.group(1)
+	    			url_list.append(t.group(1))
 except:
 	print RED + '[!] Error encountered.. Exiting..' + END
 	sys.exit(1)
@@ -100,7 +101,7 @@ for d in url_ip_lookup:
 #Time to write the GeoIP list to a text file, well we have to do something with it
 p = open(geoip_file, 'a')
 for line in geo_ip_data:
-	p.write(str(line).strip('(').strip(')').strip('\'') + '\n')
+	p.write(str(line).strip('(').strip(')') + '\n')
 print GREEN + '[+] GeoIP data written to file: ' + str(geoip_file) + END
 p.close()
 
@@ -128,7 +129,5 @@ for x in submit_list:
 	req = urllib2.Request(url, data)
 	response = urllib2.urlopen(req)
 	json = response.read()
-	for key, value in json:
-		print key, value + '\n'
-
+	print json
 
